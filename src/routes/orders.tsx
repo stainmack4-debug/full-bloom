@@ -37,16 +37,14 @@ function Orders() {
         <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
           <p className="text-sm font-semibold uppercase tracking-widest text-accent">My Orders</p>
           <h1 className="mt-2 font-display text-4xl font-bold">Your NextRide packages</h1>
-          <p className="mt-2 max-w-lg text-white/70">Sign in to see every package you have booked, tracked and delivered.</p>
+          <p className="mt-2 max-w-lg text-white/70">Sign in with your email and password to see every package you have booked.</p>
         </div>
       </section>
       <section className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-        {loadingSession ? (
-          <p className="text-center text-muted-foreground">Checking your session…</p>
-        ) : session ? (
+        {session ? (
           <OrdersList session={session} onLogout={() => supabase.auth.signOut().then(() => toast.success("Signed out"))} />
         ) : (
-          <AuthGate />
+          <AuthGate isLoading={loadingSession} />
         )}
       </section>
       <SiteFooter />
@@ -54,7 +52,7 @@ function Orders() {
   );
 }
 
-function AuthGate() {
+function AuthGate({ isLoading }: { isLoading: boolean }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -85,7 +83,7 @@ function AuthGate() {
     <div className="mx-auto max-w-md rounded-2xl border border-border bg-card p-8 shadow-lg">
       <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-accent mx-auto"><User className="h-5 w-5"/></div>
       <h2 className="mt-4 text-center font-display text-2xl font-bold text-primary">{mode === "signin" ? "Sign in" : "Create account"}</h2>
-      <p className="mt-1 text-center text-sm text-muted-foreground">{mode === "signin" ? "Access your package history" : "Get access to your bookings anytime"}</p>
+      <p className="mt-1 text-center text-sm text-muted-foreground">{mode === "signin" ? "Enter your email and password to access your packages" : "Create an account to manage your bookings anytime"}</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <div className="space-y-1.5">
           <label className="text-xs uppercase tracking-widest text-muted-foreground">Email</label>
@@ -101,8 +99,8 @@ function AuthGate() {
             <Input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required placeholder="••••••••" minLength={6} className="pl-10" />
           </div>
         </div>
-        <Button type="submit" disabled={busy} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-          {busy ? (mode === "signin" ? "Signing in…" : "Creating account…") : (mode === "signin" ? "Sign in" : "Create account")}
+        <Button type="submit" disabled={busy || isLoading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+          {busy ? (mode === "signin" ? "Signing in…" : "Creating account…") : (mode === "signin" ? "Sign in with password" : "Create account")}
         </Button>
       </form>
       <p className="mt-4 text-center text-sm text-muted-foreground">
