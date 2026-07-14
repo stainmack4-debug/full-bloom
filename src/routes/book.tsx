@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useEffect, useMemo, useState } from "react";
 import { calculateFee, formatNaira, type PackageRow } from "@/lib/nextride";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Truck, ArrowRight } from "lucide-react";
+import { Truck, ArrowRight, Lock, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -36,6 +37,10 @@ function Book() {
   });
   const [userId, setUserId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -46,40 +51,87 @@ function Book() {
         setF((s) => ({ ...s, customer_email: user.email ?? s.customer_email }));
       }
     });
-    return () => { mounted = false; };
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
+      setUserId(s?.user?.id ?? null);
+    });
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
   const fee = useMemo(() => calculateFee(Number(f.distance_km) || 0, Number(f.weight_kg) || 1), [f.distance_km, f.weight_kg]);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
+  async function createBooking() {
+    const payload = {
+      ...f,
+      customer_email: f.customer_email || null,
+      user_id: userId,
+      weight_kg: Number(f.weight_kg),
+      distance_km: Number(f.distance_km),
+      fee_ngn: fee,
+      pickup_at: f.pickup_at ? new Date(f.pickup_at).toISOString() : null,
+      estimated_delivery: f.pickup_at ? new Date(new Date(f.pickup_at).getTime() + 6 * 3600 * 1000).toISOString() : null,
+    };
+    const { data, error } = await supabase.from("packages" as never).insert(payload as never).select("tracking_id, customer_email").single();
+    if (error) throw error;
+    const row = data as Pick<PackageRow, "tracking_id" | "customer_email">;
+    if (f.customer_email && typeof window !== "undefined") {
+      localStorage.setItem("nextride:email", f.customer_email);
+    }
+    toast.success(`Booking confirmed — ${row.tracking_id}`);
+    nav({ to: "/track", search: { id: row.tracking_id } });
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!f.customer_email) {
+      toast.error("Please enter your email address first.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const payload = {
-        ...f,
-        customer_email: f.customer_email || null,
-        user_id: userId,
-        weight_kg: Number(f.weight_kg),
-        distance_km: Number(f.distance_km),
-        fee_ngn: fee,
-        pickup_at: f.pickup_at ? new Date(f.pickup_at).toISOString() : null,
-        estimated_delivery: f.pickup_at ? new Date(new Date(f.pickup_at).getTime() + 6 * 3600 * 1000).toISOString() : null,
-      };
-      const { data, error } = await supabase.from("packages" as never).insert(payload as never).select("tracking_id, customer_email").single();
-      if (error) throw error;
-      const row = data as Pick<PackageRow, "tracking_id" | "customer_email">;
-      // remember email for "My Orders"
-      if (f.customer_email && typeof window !== "undefined") {
-        localStorage.setItem("nextride:email", f.customer_email);
+      if (!userId) {
+        setAuthOpen(true);
+        return;
       }
-      toast.success(`Booking confirmed — ${row.tracking_id}`);
-      nav({ to: "/track", search: { id: row.tracking_id } });
+      await createBooking();
     } catch (err) {
       toast.error((err as Error).message ?? "Failed to book");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAuth(e: React.FormEvent) {
+    e.preventDefault();
+    if (!password || password.length < 6) {
+      toast.error("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      // Try sign-up first, then sign-in if the account already exists.
+      let { error: signUpError } = await supabase.auth.signUp({ email: f.customer_email, password });
+      if (signUpError) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: f.customer_email, password });
+        if (signInError) throw signUpError;
+      }
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id ?? null;
+      if (!uid) throw new Error("Authentication succeeded but no session was created.");
+      setUserId(uid);
+      setAuthOpen(false);
+      setPassword("");
+      setConfirmPassword("");
+      await createBooking();
+    } catch (err) {
+      toast.error((err as Error).message ?? "Authentication failed");
+    } finally {
+      setAuthBusy(false);
     }
   }
 
@@ -170,6 +222,46 @@ function Book() {
         </aside>
       </section>
       <SiteFooter />
+
+      <Dialog open={authOpen} onOpenChange={setAuthOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center font-display text-xl">Set your password</DialogTitle>
+            <DialogDescription className="text-center">
+              Create a password for <span className="font-semibold text-primary">{f.customer_email}</span> so you can track this delivery and manage future bookings.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAuth} className="mt-4 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="email" value={f.customer_email} readOnly className="pl-10 bg-muted" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="password" required minLength={6} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Confirm password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="password" required minLength={6} placeholder="Re-enter your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="pl-10" />
+              </div>
+            </div>
+            <Button type="submit" disabled={authBusy} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              {authBusy ? "Creating account…" : "Create account & book delivery"}
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Already have a password? Use the same one above to sign in.
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
