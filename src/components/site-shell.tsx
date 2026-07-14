@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Package, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,11 @@ const NAV = [
 export function Logo({ className, tone = "dark" }: { className?: string; tone?: "dark" | "light" }) {
   return (
     <Link to="/" className={cn("flex items-center gap-2.5 group", className)}>
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/30 group-hover:scale-105 transition">
-        <Package className="h-5 w-5" strokeWidth={2.5} />
-      </span>
+      <img
+        src="/logo-icon.svg"
+        alt="NextRide Logistics"
+        className="h-10 w-10 rounded-xl shadow-lg shadow-accent/30 group-hover:scale-105 transition"
+      />
       <span className={cn("font-display font-extrabold leading-none tracking-tight", tone === "dark" ? "text-primary" : "text-white")}>
         <span className="block text-base">NEXTRIDE</span>
         <span className="block text-[10px] font-semibold tracking-[0.25em] text-accent">LOGISTICS</span>
