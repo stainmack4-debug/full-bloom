@@ -61,11 +61,11 @@ function Book() {
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
-  async function createBooking() {
+  async function createBooking(bookingUserId: string | null) {
     const payload = {
       ...f,
       customer_email: f.customer_email || null,
-      user_id: userId,
+      user_id: bookingUserId,
       weight_kg: Number(f.weight_kg),
       distance_km: Number(f.distance_km),
       fee_ngn: fee,
@@ -94,7 +94,7 @@ function Book() {
         setAuthOpen(true);
         return;
       }
-      await createBooking();
+      await createBooking(userId);
     } catch (err) {
       toast.error((err as Error).message ?? "Failed to book");
     } finally {
@@ -127,7 +127,7 @@ function Book() {
       setAuthOpen(false);
       setPassword("");
       setConfirmPassword("");
-      await createBooking();
+      await createBooking(uid);
     } catch (err) {
       toast.error((err as Error).message ?? "Authentication failed");
     } finally {
