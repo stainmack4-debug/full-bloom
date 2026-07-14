@@ -34,6 +34,7 @@ export type PackageRow = {
   fee_ngn: number;
   status: PackageStatus;
   driver_id: string | null;
+  user_id: string | null;
   created_at: string;
   updated_at: string;
 };

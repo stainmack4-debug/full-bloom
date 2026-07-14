@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { calculateFee, formatNaira, type PackageRow } from "@/lib/nextride";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,7 +34,20 @@ function Book() {
     pickup_option: "driver_pickup" as "driver_pickup" | "customer_dropoff",
     pickup_at: "", distance_km: 10,
   });
+  const [userId, setUserId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user;
+      if (user && mounted) {
+        setUserId(user.id);
+        setF((s) => ({ ...s, customer_email: user.email ?? s.customer_email }));
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const fee = useMemo(() => calculateFee(Number(f.distance_km) || 0, Number(f.weight_kg) || 1), [f.distance_km, f.weight_kg]);
 
@@ -46,6 +59,8 @@ function Book() {
     try {
       const payload = {
         ...f,
+        customer_email: f.customer_email || null,
+        user_id: userId,
         weight_kg: Number(f.weight_kg),
         distance_km: Number(f.distance_km),
         fee_ngn: fee,
