@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as DriverRouteImport } from './routes/driver'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -31,6 +32,11 @@ const ServicesRoute = ServicesRouteImport.update({
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriverRoute = DriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/driver': typeof DriverRoute
   '/orders': typeof OrdersRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/driver': typeof DriverRoute
   '/orders': typeof OrdersRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/book': typeof BookRoute
   '/contact': typeof ContactRoute
+  '/driver': typeof DriverRoute
   '/orders': typeof OrdersRoute
   '/services': typeof ServicesRoute
   '/track': typeof TrackRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/contact'
+    | '/driver'
     | '/orders'
     | '/services'
     | '/track'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/contact'
+    | '/driver'
     | '/orders'
     | '/services'
     | '/track'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/book'
     | '/contact'
+    | '/driver'
     | '/orders'
     | '/services'
     | '/track'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   BookRoute: typeof BookRoute
   ContactRoute: typeof ContactRoute
+  DriverRoute: typeof DriverRoute
   OrdersRoute: typeof OrdersRoute
   ServicesRoute: typeof ServicesRoute
   TrackRoute: typeof TrackRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/driver': {
+      id: '/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof DriverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   BookRoute: BookRoute,
   ContactRoute: ContactRoute,
+  DriverRoute: DriverRoute,
   OrdersRoute: OrdersRoute,
   ServicesRoute: ServicesRoute,
   TrackRoute: TrackRoute,

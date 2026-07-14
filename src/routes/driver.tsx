@@ -183,7 +183,7 @@ function DriverApp({ driverId, onLogout }: { driverId: string; onLogout: () => v
                   <ProfileItem label="Status" value={driver.status} />
                   <ProfileItem label="Delivered" value={String(delivered.length)} />
                 </div>
-                <Button onClick={() => sessionStorage.removeItem(DRIVER_ID_KEY) || location.reload()} variant="outline" className="mt-4 w-full">Switch driver</Button>
+                <Button onClick={() => { sessionStorage.removeItem(DRIVER_ID_KEY); location.reload(); }} variant="outline" className="mt-4 w-full">Switch driver</Button>
               </div>
             </div>
           )}
