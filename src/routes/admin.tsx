@@ -353,6 +353,7 @@ function CustomersTab() {
 
 function DriversTab() {
   const { data: drivers = [], refetch } = useDrivers();
+  const { data: packages = [] } = usePackages();
   const [form, setForm] = useState({ name: "", phone: "", vehicle: "", plate: "" });
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -365,25 +366,51 @@ function DriversTab() {
     if (error) return toast.error(error.message);
     toast.success("Driver removed"); refetch();
   }
+  const activeByDriver = useMemo(() => {
+    const map = new Map<string, PackageRow[]>();
+    packages.forEach((p) => {
+      if (!p.driver_id) return;
+      if (["delivered", "cancelled"].includes(p.status)) return;
+      const list = map.get(p.driver_id) ?? [];
+      list.push(p);
+      map.set(p.driver_id, list);
+    });
+    return map;
+  }, [packages]);
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <Card title={`Drivers (${drivers.length})`}>
         <div className="overflow-x-auto -mx-6">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-border text-left text-muted-foreground">
-              <th className="px-6 py-3 font-medium">Name</th><th className="px-6 py-3 font-medium">Phone</th><th className="px-6 py-3 font-medium">Vehicle</th><th className="px-6 py-3 font-medium">Plate</th><th className="px-6 py-3 font-medium">Status</th><th className="px-6 py-3"/>
+              <th className="px-6 py-3 font-medium">Name</th><th className="px-6 py-3 font-medium">Phone</th><th className="px-6 py-3 font-medium">Vehicle</th><th className="px-6 py-3 font-medium">Active jobs</th><th className="px-6 py-3 font-medium">Status</th><th className="px-6 py-3"/>
             </tr></thead>
             <tbody>
-              {drivers.map((d) => (
-                <tr key={d.id} className="border-b border-border/60 last:border-0">
-                  <td className="px-6 py-3 font-medium text-primary">{d.name}</td>
-                  <td className="px-6 py-3">{d.phone}</td>
-                  <td className="px-6 py-3">{d.vehicle ?? "-"}</td>
-                  <td className="px-6 py-3">{d.plate ?? "-"}</td>
-                  <td className="px-6 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${d.status === "available" ? "bg-success/15 text-success" : d.status === "busy" ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"}`}><span className="h-1.5 w-1.5 rounded-full bg-current"/>{d.status}</span></td>
-                  <td className="px-6 py-3"><Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => remove(d.id)}>Remove</Button></td>
-                </tr>
-              ))}
+              {drivers.map((d) => {
+                const active = activeByDriver.get(d.id) ?? [];
+                return (
+                  <tr key={d.id} className="border-b border-border/60 last:border-0 align-top">
+                    <td className="px-6 py-3 font-medium text-primary">{d.name}<div className="text-xs text-muted-foreground">{d.plate ?? "-"}</div></td>
+                    <td className="px-6 py-3">{d.phone}</td>
+                    <td className="px-6 py-3">{d.vehicle ?? "-"}</td>
+                    <td className="px-6 py-3">
+                      {active.length === 0 ? <span className="text-muted-foreground">None</span> : (
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-2 py-0.5 text-xs font-semibold">{active.length} assigned</span>
+                          {active.slice(0, 3).map((p) => (
+                            <div key={p.id} className="text-xs text-muted-foreground">
+                              <span className="font-semibold text-primary">{p.tracking_id}</span> · {STATUS_LABEL[p.status]}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${active.length > 0 ? "bg-accent/15 text-accent" : d.status === "available" ? "bg-success/15 text-success" : d.status === "busy" ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"}`}><span className="h-1.5 w-1.5 rounded-full bg-current"/>{active.length > 0 ? "busy" : d.status}</span></td>
+                    <td className="px-6 py-3"><Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => remove(d.id)}>Remove</Button></td>
+                  </tr>
+                );
+              })}
+              {drivers.length === 0 && <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No drivers yet. Add one on the right.</td></tr>}
             </tbody>
           </table>
         </div>
