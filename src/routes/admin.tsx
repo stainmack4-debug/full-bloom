@@ -235,8 +235,10 @@ function PackagesTab() {
   async function assign(pkgId: string, driverId: string) {
     const { error } = await supabase.from("packages" as never).update({ driver_id: driverId, status: "assigned" } as never).eq("id", pkgId);
     if (error) return toast.error(error.message);
+    await supabase.from("drivers" as never).update({ status: "busy" } as never).eq("id", driverId);
     toast.success("Driver assigned");
     qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["admin-drivers"] });
   }
   async function updateStatus(pkgId: string, status: PackageStatus) {
     const { error } = await supabase.from("packages" as never).update({ status } as never).eq("id", pkgId);
