@@ -113,7 +113,7 @@ function AuthGate({ isLoading }: { isLoading: boolean }) {
   );
 }
 
-function OrdersList({ session, onLogout }: { session: { user: { email?: string } }; onLogout: () => void }) {
+function OrdersList({ session, onLogout }: { session: { user: { id: string; email?: string } }; onLogout: () => void }) {
   const userEmail = session.user.email ?? "";
   const query = useQuery({
     queryKey: ["my-orders", userEmail],
