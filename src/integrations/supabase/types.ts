@@ -109,7 +109,6 @@ export type Database = {
           status: Database["public"]["Enums"]["package_status"]
           tracking_id: string
           updated_at: string
-          user_id: string | null
           weight_kg: number
         }
         Insert: {
@@ -135,7 +134,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["package_status"]
           tracking_id?: string
           updated_at?: string
-          user_id?: string | null
           weight_kg?: number
         }
         Update: {
@@ -161,7 +159,6 @@ export type Database = {
           status?: Database["public"]["Enums"]["package_status"]
           tracking_id?: string
           updated_at?: string
-          user_id?: string | null
           weight_kg?: number
         }
         Relationships: [
@@ -170,13 +167,6 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "drivers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "packages_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
